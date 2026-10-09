@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import functools
 import logging
 import os
 import typing
 
 from PySide6.QtCore import QObject
 from PySide6.QtHttpServer import QHttpServerRequest
+from PySide6.QtWidgets import QAbstractButton, QDoubleSpinBox
 
+from qt_ui import settings
 from qt_ui.device_wizard.axes import AxisEnum
 from qt_ui.models.funscript_kit import FunscriptKitModel
 from net.http_server import HttpServer, ApiError, json_body, query_param
@@ -15,6 +18,46 @@ if typing.TYPE_CHECKING:
     from qt_ui.mainwindow import Window
 
 logger = logging.getLogger('restim.rest_api')
+
+
+class WidgetSetting:
+    """
+    A setting exposed through the REST api, backed by a widget, so changes
+    behave exactly like edits in the ui.
+    """
+    def __init__(self, widget: QDoubleSpinBox | QAbstractButton, default, description: str):
+        self.widget = widget
+        self.default = default  # value, or callable returning the value
+        self.description = description
+
+    def is_bool(self) -> bool:
+        return isinstance(self.widget, QAbstractButton)
+
+    def get(self):
+        if self.is_bool():
+            return self.widget.isChecked()
+        return self.widget.value()
+
+    def default_value(self):
+        return self.default() if callable(self.default) else self.default
+
+    def set(self, value):
+        if self.is_bool():
+            if not isinstance(value, bool):
+                raise ApiError(400, 'value must be a boolean')
+            self.widget.setChecked(value)
+        else:
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ApiError(400, 'value must be a number')
+            # setValue clamps to the widget range
+            self.widget.setValue(value)
+
+    def describe(self) -> dict:
+        d = {'value': self.get(), 'default': self.default_value(), 'description': self.description}
+        if not self.is_bool():
+            d['min'] = self.widget.minimum()
+            d['max'] = self.widget.maximum()
+        return d
 
 
 class RestApi(QObject):
@@ -26,6 +69,15 @@ class RestApi(QObject):
         super().__init__(window)
         self.window = window
         self.http = http_server
+
+        self.settings = self.create_settings()
+        self.http.route_json('/v1/settings', {'GET': self.get_settings, 'PUT': self.set_settings})
+        for name in self.settings:
+            self.http.route_json(f'/v1/settings/{name}', {
+                'GET': functools.partial(self.get_setting, name),
+                'PUT': functools.partial(self.set_setting, name),
+                'DELETE': functools.partial(self.reset_setting, name),
+            })
 
         self.http.route_json('/v1/media', {'GET': self.get_media})
         self.http.route_json('/v1/media/source', {'GET': self.get_media_source, 'PUT': self.set_media_source})
@@ -201,3 +253,84 @@ class RestApi(QObject):
             raise ApiError(409, f'{item.file_name} was auto-detected from the loaded media, use /v1/media/unload')
         page.remove_funscript(item)
         return self.funscript_list()
+
+    # settings
+
+    def create_settings(self) -> dict[str, WidgetSetting]:
+        w = self.window
+        vol = w.tab_volume
+        pulse = w.tab_pulse_settings
+        return {
+            'volume': WidgetSetting(
+                w.doubleSpinBox_volume, settings.volume_default_level.get,
+                'master volume [%]. Default is the startup volume from the preferences.'),
+            'volume_ramp_enabled': WidgetSetting(vol.checkBox_ramp_enabled, False, 'enable volume ramp'),
+            'volume_ramp_target': WidgetSetting(
+                vol.doubleSpinBox_ramp_target, settings.volume_ramp_target.default_value * 100, 'volume ramp target [%]'),
+            'volume_ramp_rate': WidgetSetting(
+                vol.doubleSpinBox_ramp_rate, settings.volume_ramp_increment_rate.default_value, 'volume ramp rate [%/minute]'),
+            'volume_inactivity_threshold': WidgetSetting(
+                vol.doubleSpinBox_inactivity_threshold, settings.volume_inactivity_threshold.default_value, 'inactivity threshold'),
+            'volume_inactivity_ramp_time': WidgetSetting(
+                vol.doubleSpinBox_inactivity_ramp_time, settings.volume_inactivity_time.default_value, 'inactivity ramp time [s]'),
+            'volume_inactivity_volume': WidgetSetting(
+                vol.doubleSpinBox_inactivity_volume, settings.volume_inactivity_volume.default_value, 'inactivity volume reduction'),
+            'volume_slow_start_time': WidgetSetting(
+                vol.doubleSpinBox_slow_start, settings.volume_slow_start_time.default_value, 'slow start time [s]'),
+            'tau_us': WidgetSetting(vol.doubleSpinBox_tau, settings.tau_us.default_value, 'tau [us]'),
+            'pulse_frequency_calibration_enable': WidgetSetting(
+                vol.checkBox_pulse_frequency_enable, settings.pulse_frequency_calibration_enable.default_value,
+                'volume-frequency calibration'),
+            'burst_gap_enable': WidgetSetting(
+                vol.checkbox_burst_gap_enable, settings.burst_gap_enable.default_value, 'burst gap'),
+            'pulse_carrier_frequency': WidgetSetting(
+                pulse.carrier_controller.control, settings.pulse_carrier_frequency.default_value,
+                'pulse carrier frequency [Hz], limited by the device frequency range'),
+            'pulse_frequency': WidgetSetting(
+                pulse.pulse_frequency_controller.control, settings.pulse_frequency.default_value, 'pulse frequency [Hz]'),
+            'pulse_width': WidgetSetting(
+                pulse.pulse_width_controller.control, settings.pulse_width.default_value, 'pulse width [carrier cycles]'),
+            'pulse_interval_random': WidgetSetting(
+                pulse.pulse_interval_random_controller.control, settings.pulse_interval_random.default_value,
+                'pulse interval random [%]'),
+            'pulse_rise_time': WidgetSetting(
+                pulse.pulse_rise_time_controller.control, settings.pulse_rise_time.default_value,
+                'pulse rise time [carrier cycles]'),
+            'continuous_carrier_frequency': WidgetSetting(
+                w.tab_carrier.carrier_controller.control, settings.mk312_carrier.default_value,
+                'carrier frequency for continuous waveforms [Hz]'),
+            'media_sync_offset': WidgetSetting(
+                w.page_media.media_offset_spinbox, settings.media_sync_time_offset_ms.default_value / 1000,
+                'media sync offset [s]'),
+        }
+
+    def get_settings(self, request: QHttpServerRequest):
+        return {name: setting.describe() for name, setting in self.settings.items()}
+
+    def set_settings(self, request: QHttpServerRequest):
+        """set multiple settings at once. body: {"volume": 30, "pulse_frequency": 50}"""
+        body = json_body(request)
+        unknown = [name for name in body if name not in self.settings]
+        if unknown:
+            raise ApiError(404, f'unknown settings: {", ".join(unknown)}')
+        for name, value in body.items():
+            try:
+                self.settings[name].set(value)
+            except ApiError as e:
+                raise ApiError(e.status, f'{name}: {e.message}')
+        return self.get_settings(request)
+
+    def get_setting(self, name: str, request: QHttpServerRequest):
+        return self.settings[name].describe()
+
+    def set_setting(self, name: str, request: QHttpServerRequest):
+        body = json_body(request)
+        if 'value' not in body:
+            raise ApiError(400, '"value" is required')
+        self.settings[name].set(body['value'])
+        return self.settings[name].describe()
+
+    def reset_setting(self, name: str, request: QHttpServerRequest):
+        setting = self.settings[name]
+        setting.set(setting.default_value())
+        return setting.describe()
