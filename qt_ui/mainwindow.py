@@ -6,7 +6,6 @@ from enum import Enum
 from PySide6 import QtGui
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
-from PySide6.QtHttpServer import QHttpServerRequest
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QSizePolicy, QFrame, QStyleFactory, QVBoxLayout, QHBoxLayout, QLCDNumber
 )
@@ -199,9 +198,6 @@ class Window(QMainWindow, Ui_MainWindow):
         self.websocket_server.incoming_pressure_data.connect(self.page_sensors.new_pressure_sensor_data_from_network)
 
         self.http_server = net.http_server.HttpServer(self)
-        self.http_server.route('/v1/status', self.api_status)
-        self.http_server.add_action('start', self.api_start)
-        self.http_server.add_action('stop', self.api_stop)
         self.rest_api = net.rest_api.RestApi(self, self.http_server)
 
         self.tcpudp_server = net.tcpudpserver.TcpUdpServer(self)
@@ -713,26 +709,6 @@ class Window(QMainWindow, Ui_MainWindow):
             self.output_device.stop()
         self.save_settings()
         event.accept()
-
-    def api_status(self, request: QHttpServerRequest):
-        params = {
-            "playing": self.playstate == PlayState.PLAYING,
-            "volume": {
-                "ui": self.doubleSpinBox_volume.value() / 100,
-            },
-        }
-        if self.last_device_volume is not None:
-            params["volume"]["device"] = self.last_device_volume
-        return json.dumps(params)
-
-    def api_start(self, request: QHttpServerRequest):
-        if self.output_device is None:
-            self.signal_start()
-        return "{}"
-
-    def api_stop(self, request: QHttpServerRequest):
-        self.signal_stop()
-        return "{}"
 
 
 def run():

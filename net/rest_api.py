@@ -80,6 +80,12 @@ class RestApi(QObject):
         self.window = window
         self.http = http_server
 
+        self.http.route_json('/v1/status', {'GET': self.get_status})
+        self.http.add_json_action('start', self.start)
+        self.http.add_json_action('stop', self.stop)
+        self.http.add_json_action('play', self.play)
+        self.http.add_json_action('pause', self.pause)
+
         self.settings = self.create_settings()
         self.http.route_json('/v1/settings', {'GET': self.get_settings, 'PUT': self.set_settings})
         for name in self.settings:
@@ -102,6 +108,61 @@ class RestApi(QObject):
             'PUT': self.assign_funscript,
             'DELETE': self.remove_funscripts,
         })
+
+    # playback
+
+    def get_status(self, request: QHttpServerRequest):
+        from qt_ui.mainwindow import PlayState
+        w = self.window
+        status = {
+            'playing': w.playstate == PlayState.PLAYING,
+            'playstate': w.playstate.name,
+            'volume': {
+                'ui': w.doubleSpinBox_volume.value() / 100,
+            },
+            'media': self.media_status(),
+            'device': DeviceConfiguration.from_settings().device_type.name,
+        }
+        if w.last_device_volume is not None:
+            status['volume']['device'] = w.last_device_volume
+        return status
+
+    def start_output(self):
+        if self.window.output_device is None:
+            self.window.signal_start()
+        if self.window.output_device is None:
+            raise ApiError(503, 'failed to start the output device, see log for details')
+
+    def start(self, request: QHttpServerRequest):
+        """start the output device"""
+        self.start_output()
+        return self.get_status(request)
+
+    def stop(self, request: QHttpServerRequest):
+        """stop the output device. The REST media source is paused."""
+        self.window.signal_stop()
+        rest = self.window.page_media.rest_media_sync()
+        if rest is not None:
+            rest.pause()
+        return self.get_status(request)
+
+    def play(self, request: QHttpServerRequest):
+        """start the output device if needed, and start playback of the REST media source"""
+        rest = self.window.page_media.rest_media_sync()
+        if rest is not None and not rest.is_media_loaded():
+            raise ApiError(409, 'no media loaded, use /v1/media/load')
+        self.start_output()
+        if rest is not None:
+            rest.play()
+        return self.get_status(request)
+
+    def pause(self, request: QHttpServerRequest):
+        """
+        pause playback of the REST media source. The output device stays connected,
+        but is silent while paused.
+        """
+        self.require_rest_media_sync().pause()
+        return self.get_status(request)
 
     # media
 

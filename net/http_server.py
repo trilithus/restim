@@ -84,6 +84,10 @@ class HttpServer(QObject):
         self.actions.append(action_string)
         self.route(f"/v1/actions/{action_string}", fn)
 
+    def add_json_action(self, action_string, fn):
+        self.actions.append(action_string)
+        self.route_json(f"/v1/actions/{action_string}", {'GET': fn, 'POST': fn})
+
     def route(self, rule, fn):
         # store fn somewhere, because QHttpServer::route
         # forgets to increase the object refcount
