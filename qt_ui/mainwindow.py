@@ -592,6 +592,10 @@ class Window(QMainWindow, Ui_MainWindow):
         if self.output_device is not None:
             self.output_device.stop()
             self.output_device = None
+        # the REST media source keeps its own clock, don't let it run on without output
+        rest_media_sync = self.page_media.rest_media_sync()
+        if rest_media_sync is not None:
+            rest_media_sync.pause()
         self.playstate = new_playstate
         self.tab_volume.set_play_state(self.playstate)
         self.refresh_play_button_icon()

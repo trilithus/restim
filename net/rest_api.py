@@ -142,9 +142,6 @@ class RestApi(QObject):
     def stop(self, request: QHttpServerRequest):
         """stop the output device. The REST media source is paused."""
         self.window.signal_stop()
-        rest = self.window.page_media.rest_media_sync()
-        if rest is not None:
-            rest.pause()
         return self.get_status(request)
 
     def play(self, request: QHttpServerRequest):
