@@ -36,6 +36,7 @@ class RestApi(QObject):
             'GET': self.get_funscripts,
             'POST': self.add_funscripts,
             'PUT': self.assign_funscript,
+            'DELETE': self.remove_funscripts,
         })
 
     # media
@@ -182,4 +183,21 @@ class RestApi(QObject):
             if axis is None:
                 raise ApiError(400, f'axis must be AUTO or one of: {", ".join(a.name for a in allowed)}')
         model.set_axis(item, axis)
+        return self.funscript_list()
+
+    def remove_funscripts(self, request: QHttpServerRequest):
+        """
+        Unload a funscript selected by id/path/file, or all manually loaded funscripts
+        if none is selected. Auto-detected funscripts belong to the loaded media,
+        use POST /v1/media/unload to unload those.
+        """
+        body = json_body(request)
+        page = self.window.page_media
+        if not any(k in body or query_param(request, k) is not None for k in ('id', 'path', 'file')):
+            page.clear_manual_funscripts()
+            return self.funscript_list()
+        item = self.find_funscript(request, body)
+        if not page.model.is_manual(item):
+            raise ApiError(409, f'{item.file_name} was auto-detected from the loaded media, use /v1/media/unload')
+        page.remove_funscript(item)
         return self.funscript_list()

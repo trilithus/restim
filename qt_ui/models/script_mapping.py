@@ -276,6 +276,15 @@ class ScriptMappingModel(QAbstractItemModel):
             return True
         return False
 
+    def clear_manual_funscripts(self) -> bool:
+        if self._funscripts_manual.childCount():
+            self.beginResetModel()
+            self._funscripts_manual.children.clear()
+            self.endResetModel()
+            self.refresh_active_files()
+            return True
+        return False
+
     def auto_link_funscripts(self, kit: FunscriptKitModel) -> None:
         for item in self.funscript_conifg():
             self.auto_link_funscript(kit, item)

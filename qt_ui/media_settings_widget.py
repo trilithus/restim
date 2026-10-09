@@ -128,6 +128,18 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
         self.funscriptMappingChanged.emit()
         return items
 
+    def remove_funscript(self, item: FunscriptTreeItem):
+        """remove a manually added funscript, same as the remove button in the ui"""
+        parent = item.parent
+        row = parent.children.index(item)
+        self.model.removeRow(row, self.model.createIndex(parent.row(), 0, parent))
+        self.treeView.expandAll()
+
+    def clear_manual_funscripts(self):
+        if self.model.clear_manual_funscripts():
+            self.treeView.expandAll()
+            self.funscriptMappingChanged.emit()
+
     def open_search_paths_dialog(self):
         self.dialogOpened.emit()  # trigger stop audio
         dlg = AdditionalSearchPathsDialog()
