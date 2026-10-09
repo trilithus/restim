@@ -231,6 +231,11 @@ class ScriptMappingModel(QAbstractItemModel):
     def is_manual(self, item: FunscriptTreeItem) -> bool:
         return item in self._funscripts_manual.children
 
+    def set_axis(self, item: FunscriptTreeItem, axis: AxisEnum) -> bool:
+        """change the axis assignment, as if edited in the ui"""
+        row = item.parent.children.index(item)
+        return self.setData(self.createIndex(row, 1, item), axis, Qt.EditRole)
+
     def get_config_for_axis(self, axis: AxisEnum) -> FunscriptTreeItem | None:
         for funscript in self._funscripts_manual.children + self._funscripts_auto.children:
             if funscript.axis == axis:
@@ -280,12 +285,19 @@ class ScriptMappingModel(QAbstractItemModel):
         if item.has_broken_script():
             return
 
+        axis = self.auto_link_axis(kit, item)
+        if axis is not None:
+            item.axis = axis
+            logger.info(f'auto-linking `{item.file_name}` to {axis.display_name()}.')
+            return
+        logger.info(f'auto-linking `{item.file_name}` failed')
+
+    @staticmethod
+    def auto_link_axis(kit: FunscriptKitModel, item: FunscriptTreeItem) -> AxisEnum | None:
         suffix = item.funscript_type
         if suffix:
             for kit_item in kit.funscript_conifg():
                 if kit_item.auto_loading and kit_item.allow_funscript_control:
                     if suffix in kit_item.funscript_names:
-                        item.axis = kit_item.axis
-                        logger.info(f'auto-linking `{item.file_name}` to {kit_item.axis.display_name()}.')
-                        return
-        logger.info(f'auto-linking `{item.file_name}` failed')
+                        return kit_item.axis
+        return None

@@ -7,6 +7,8 @@ import typing
 from PySide6.QtCore import QObject
 from PySide6.QtHttpServer import QHttpServerRequest
 
+from qt_ui.device_wizard.axes import AxisEnum
+from qt_ui.models.funscript_kit import FunscriptKitModel
 from net.http_server import HttpServer, ApiError, json_body, query_param
 
 if typing.TYPE_CHECKING:
@@ -33,6 +35,7 @@ class RestApi(QObject):
         self.http.route_json('/v1/funscripts', {
             'GET': self.get_funscripts,
             'POST': self.add_funscripts,
+            'PUT': self.assign_funscript,
         })
 
     # media
@@ -119,4 +122,64 @@ class RestApi(QObject):
             if not os.path.isfile(path):
                 raise ApiError(404, f'file not found: {path}')
         self.window.page_media.add_funscripts([os.path.abspath(p) for p in paths])
+        return self.funscript_list()
+
+    def find_funscript(self, request: QHttpServerRequest, body: dict):
+        """
+        Find a funscript by "id" (index in GET /v1/funscripts), "path" or "file" name,
+        given in the json body or the query string.
+        """
+        model = self.window.page_media.model
+        items = model.funscript_conifg()
+
+        def param(name):
+            return body.get(name, query_param(request, name))
+
+        id_ = param('id')
+        path = param('path')
+        file = param('file')
+        if id_ is not None:
+            try:
+                return items[int(id_)]
+            except (ValueError, TypeError, IndexError):
+                raise ApiError(404, f'no funscript with id {id_}')
+        if path is not None:
+            path = os.path.abspath(path)
+            for item in items:
+                if item.path == path:
+                    return item
+            raise ApiError(404, f'no funscript with path {path}')
+        if file is not None:
+            for item in items:
+                if item.file_name == file:
+                    return item
+            raise ApiError(404, f'no funscript with file name {file}')
+        raise ApiError(400, 'specify the funscript with "id", "path" or "file"')
+
+    def assignable_axes(self) -> list[AxisEnum]:
+        return [AxisEnum.NONE] + [item.axis for item in FunscriptKitModel.load_from_settings().children
+                                  if item.allow_funscript_control]
+
+    def assign_funscript(self, request: QHttpServerRequest):
+        """
+        Change the axis a funscript is assigned to.
+        body: {"id": 0, "axis": "POSITION_BETA"}. Use axis "NONE" to unassign,
+        or "AUTO" to re-run auto-assignment.
+        """
+        body = json_body(request)
+        item = self.find_funscript(request, body)
+        axis_name = body.get('axis')
+        if not isinstance(axis_name, str):
+            raise ApiError(400, '"axis" is required')
+        if item.has_broken_script():
+            raise ApiError(409, f'funscript {item.file_name} failed to load and cannot be assigned')
+        model = self.window.page_media.model
+        if axis_name.upper() == 'AUTO':
+            axis = model.auto_link_axis(FunscriptKitModel.load_from_settings(), item) or AxisEnum.NONE
+        else:
+            allowed = self.assignable_axes()
+            axis = next((a for a in allowed if a.name == axis_name.upper()), None)
+            if axis is None:
+                raise ApiError(400, f'axis must be AUTO or one of: {", ".join(a.name for a in allowed)}')
+        model.set_axis(item, axis)
         return self.funscript_list()
