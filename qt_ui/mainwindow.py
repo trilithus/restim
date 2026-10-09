@@ -620,6 +620,13 @@ class Window(QMainWindow, Ui_MainWindow):
         self.refresh_device_type()
         self.reload_settings()
 
+    def apply_device_configuration(self, config: DeviceConfiguration):
+        """apply a device configuration, as if selected in the device selection wizard"""
+        self.signal_stop(PlayState.STOPPED)
+        config.save()
+        self.refresh_device_type()
+        self.reload_settings()
+
     def open_funscript_conversion_dialog(self):
         self.signal_stop(PlayState.STOPPED)
         self.dialog.exec()

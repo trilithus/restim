@@ -11,6 +11,8 @@ from PySide6.QtWidgets import QAbstractButton, QDoubleSpinBox
 
 from qt_ui import settings
 from qt_ui.device_wizard.axes import AxisEnum
+from qt_ui.device_wizard.enums import DeviceConfiguration, DeviceType, WaveformType
+from stim_math import limits
 from qt_ui.models.funscript_kit import FunscriptKitModel
 from net.http_server import HttpServer, ApiError, json_body, query_param
 
@@ -18,6 +20,14 @@ if typing.TYPE_CHECKING:
     from qt_ui.mainwindow import Window
 
 logger = logging.getLogger('restim.rest_api')
+
+# waveform types per device type, same options as the device selection wizard. First is the default.
+DEVICE_WAVEFORMS = {
+    DeviceType.AUDIO_THREE_PHASE: [WaveformType.PULSE_BASED, WaveformType.CONTINUOUS, WaveformType.A_B_TESTING],
+    DeviceType.FOCSTIM_THREE_PHASE: [WaveformType.PULSE_BASED, WaveformType.A_B_TESTING],
+    DeviceType.FOCSTIM_FOUR_PHASE: [WaveformType.PULSE_BASED],
+    DeviceType.NEOSTIM_THREE_PHASE: [WaveformType.PULSE_BASED],
+}
 
 
 class WidgetSetting:
@@ -78,6 +88,8 @@ class RestApi(QObject):
                 'PUT': functools.partial(self.set_setting, name),
                 'DELETE': functools.partial(self.reset_setting, name),
             })
+
+        self.http.route_json('/v1/device', {'GET': self.get_device, 'PUT': self.set_device})
 
         self.http.route_json('/v1/media', {'GET': self.get_media})
         self.http.route_json('/v1/media/source', {'GET': self.get_media_source, 'PUT': self.set_media_source})
@@ -334,3 +346,77 @@ class RestApi(QObject):
         setting = self.settings[name]
         setting.set(setting.default_value())
         return setting.describe()
+
+    # device
+
+    @staticmethod
+    def frequency_limits(device_type: DeviceType) -> tuple[float, float]:
+        if device_type in (DeviceType.FOCSTIM_THREE_PHASE, DeviceType.FOCSTIM_FOUR_PHASE):
+            return limits.CarrierFrequencyFOC.min, limits.CarrierFrequencyFOC.max
+        return 1, 10000  # same as the wizard
+
+    def get_device(self, request: QHttpServerRequest):
+        config = DeviceConfiguration.from_settings()
+        return {
+            'device_type': config.device_type.name,
+            'waveform_type': config.waveform_type.name,
+            'min_frequency': config.min_frequency,
+            'max_frequency': config.max_frequency,
+            'waveform_amplitude_amps': config.waveform_amplitude_amps,
+            'options': {
+                'device_type': {t.name: [w.name for w in waveforms] for t, waveforms in DEVICE_WAVEFORMS.items()},
+                'frequency': {t.name: self.frequency_limits(t) for t in DEVICE_WAVEFORMS},
+                'waveform_amplitude_amps': [limits.WaveformAmpltiudeFOC.min, limits.WaveformAmpltiudeFOC.max],
+            },
+        }
+
+    def set_device(self, request: QHttpServerRequest):
+        """
+        Change the device configuration, like the device selection wizard does.
+        All fields are optional, missing fields keep their current value.
+        body: {"device_type": "FOCSTIM_FOUR_PHASE", "waveform_type": "PULSE_BASED",
+               "min_frequency": 500, "max_frequency": 1000, "waveform_amplitude_amps": 0.12}
+        Stops playback.
+        """
+        body = json_body(request)
+        unknown = set(body) - {'device_type', 'waveform_type', 'min_frequency', 'max_frequency', 'waveform_amplitude_amps'}
+        if unknown:
+            raise ApiError(400, f'unknown fields: {", ".join(sorted(unknown))}')
+        config = DeviceConfiguration.from_settings()
+
+        if 'device_type' in body:
+            try:
+                config.device_type = DeviceType[str(body['device_type']).upper()]
+            except KeyError:
+                config.device_type = None
+            if config.device_type not in DEVICE_WAVEFORMS:
+                raise ApiError(400, f'device_type must be one of: {", ".join(t.name for t in DEVICE_WAVEFORMS)}')
+
+        allowed_waveforms = DEVICE_WAVEFORMS.get(config.device_type, [])
+        if 'waveform_type' in body:
+            try:
+                config.waveform_type = WaveformType[str(body['waveform_type']).upper()]
+            except KeyError:
+                config.waveform_type = None
+            if config.waveform_type not in allowed_waveforms:
+                raise ApiError(400, f'waveform_type for {config.device_type.name} must be one of: '
+                                    f'{", ".join(w.name for w in allowed_waveforms)}')
+        elif allowed_waveforms and config.waveform_type not in allowed_waveforms:
+            config.waveform_type = allowed_waveforms[0]
+
+        for key in ('min_frequency', 'max_frequency', 'waveform_amplitude_amps'):
+            if key in body:
+                value = body[key]
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    raise ApiError(400, f'{key} must be a number')
+                setattr(config, key, float(value))
+
+        lo, hi = self.frequency_limits(config.device_type)
+        if not (lo <= config.min_frequency < config.max_frequency <= hi):
+            raise ApiError(400, f'frequency range must satisfy {lo} <= min_frequency < max_frequency <= {hi}')
+        if not (limits.WaveformAmpltiudeFOC.min <= config.waveform_amplitude_amps <= limits.WaveformAmpltiudeFOC.max):
+            raise ApiError(400, f'waveform_amplitude_amps must be between '
+                                f'{limits.WaveformAmpltiudeFOC.min} and {limits.WaveformAmpltiudeFOC.max}')
+
+        self.window.apply_device_configuration(config)
+        return self.get_device(request)
