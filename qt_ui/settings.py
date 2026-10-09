@@ -118,6 +118,11 @@ media_sync_vlc_address = Setting('media_sync/vlc_address', 'http://127.0.0.1:808
 media_sync_vlc_username = Setting('media_sync/vlc_username', '', str)
 media_sync_vlc_password = Setting('media_sync/vlc_password', '1234', str)
 media_sync_kodi_address = Setting('media_sync/kodi_address', 'ws://127.0.0.1:9090', str)
+media_sync_jellyfin_address = Setting('media_sync/jellyfin_address', 'http://127.0.0.1:8096', str)
+media_sync_jellyfin_api_key = Setting('media_sync/jellyfin_api_key', '', str)
+media_sync_jellyfin_user = Setting('media_sync/jellyfin_user', '', str)
+media_sync_jellyfin_device = Setting('media_sync/jellyfin_device', '', str)
+media_sync_jellyfin_offset_ms = Setting('media_sync/jellyfin_offset_ms', 0, int)
 media_sync_stop_audio_automatically = Setting('media_sync/stop_audio_automatically', True, bool)
 media_sync_time_offset_ms = Setting('media_sync/time_offset_ms', 0, int)
 

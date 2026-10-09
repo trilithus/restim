@@ -602,6 +602,73 @@ class Ui_PreferencesDialog(object):
 
         self.verticalLayout_6.addWidget(self.groupBox_2)
 
+        self.groupBox_jellyfin = QGroupBox(self.tab_media_settings)
+        self.groupBox_jellyfin.setObjectName(u"groupBox_jellyfin")
+        self.gridLayout_jellyfin = QGridLayout(self.groupBox_jellyfin)
+        self.gridLayout_jellyfin.setObjectName(u"gridLayout_jellyfin")
+        self.label_jellyfin_address = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_address.setObjectName(u"label_jellyfin_address")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_address, 0, 0, 1, 1)
+
+        self.jellyfin_address = QLineEdit(self.groupBox_jellyfin)
+        self.jellyfin_address.setObjectName(u"jellyfin_address")
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_address, 0, 1, 1, 1)
+
+        self.jellyfin_reload = QToolButton(self.groupBox_jellyfin)
+        self.jellyfin_reload.setObjectName(u"jellyfin_reload")
+        self.jellyfin_reload.setIcon(icon)
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_reload, 0, 2, 1, 1)
+
+        self.label_jellyfin_api_key = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_api_key.setObjectName(u"label_jellyfin_api_key")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_api_key, 1, 0, 1, 1)
+
+        self.jellyfin_api_key = QLineEdit(self.groupBox_jellyfin)
+        self.jellyfin_api_key.setObjectName(u"jellyfin_api_key")
+        self.jellyfin_api_key.setEchoMode(QLineEdit.EchoMode.Password)
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_api_key, 1, 1, 1, 1)
+
+        self.label_jellyfin_user = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_user.setObjectName(u"label_jellyfin_user")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_user, 2, 0, 1, 1)
+
+        self.jellyfin_user = QLineEdit(self.groupBox_jellyfin)
+        self.jellyfin_user.setObjectName(u"jellyfin_user")
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_user, 2, 1, 1, 1)
+
+        self.label_jellyfin_device = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_device.setObjectName(u"label_jellyfin_device")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_device, 3, 0, 1, 1)
+
+        self.jellyfin_device = QLineEdit(self.groupBox_jellyfin)
+        self.jellyfin_device.setObjectName(u"jellyfin_device")
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_device, 3, 1, 1, 1)
+
+        self.label_jellyfin_offset_ms = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_offset_ms.setObjectName(u"label_jellyfin_offset_ms")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_offset_ms, 4, 0, 1, 1)
+
+        self.jellyfin_offset_ms = QSpinBox(self.groupBox_jellyfin)
+        self.jellyfin_offset_ms.setObjectName(u"jellyfin_offset_ms")
+        self.jellyfin_offset_ms.setMinimum(-10000)
+        self.jellyfin_offset_ms.setMaximum(10000)
+        self.jellyfin_offset_ms.setSingleStep(10)
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_offset_ms, 4, 1, 1, 1)
+
+
+        self.verticalLayout_6.addWidget(self.groupBox_jellyfin)
+
         self.verticalSpacer_6 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_6.addItem(self.verticalSpacer_6)
@@ -768,7 +835,13 @@ class Ui_PreferencesDialog(object):
         QWidget.setTabOrder(self.vlc_username, self.vlc_password)
         QWidget.setTabOrder(self.vlc_password, self.kodi_address)
         QWidget.setTabOrder(self.kodi_address, self.kodi_reload)
-        QWidget.setTabOrder(self.kodi_reload, self.tableView)
+        QWidget.setTabOrder(self.kodi_reload, self.jellyfin_address)
+        QWidget.setTabOrder(self.jellyfin_address, self.jellyfin_reload)
+        QWidget.setTabOrder(self.jellyfin_reload, self.jellyfin_api_key)
+        QWidget.setTabOrder(self.jellyfin_api_key, self.jellyfin_user)
+        QWidget.setTabOrder(self.jellyfin_user, self.jellyfin_device)
+        QWidget.setTabOrder(self.jellyfin_device, self.jellyfin_offset_ms)
+        QWidget.setTabOrder(self.jellyfin_offset_ms, self.tableView)
         QWidget.setTabOrder(self.tableView, self.button_funscript_reset_defaults)
         QWidget.setTabOrder(self.button_funscript_reset_defaults, self.button_patterns_enable_all)
         QWidget.setTabOrder(self.button_patterns_enable_all, self.button_patterns_disable_all)
@@ -881,6 +954,14 @@ class Ui_PreferencesDialog(object):
         self.groupBox_2.setTitle(QCoreApplication.translate("PreferencesDialog", u"Kodi", None))
         self.label_13.setText(QCoreApplication.translate("PreferencesDialog", u"address:port", None))
         self.kodi_reload.setText(QCoreApplication.translate("PreferencesDialog", u"...", None))
+        self.groupBox_jellyfin.setTitle(QCoreApplication.translate("PreferencesDialog", u"Jellyfin", None))
+        self.label_jellyfin_address.setText(QCoreApplication.translate("PreferencesDialog", u"address:port", None))
+        self.label_jellyfin_api_key.setText(QCoreApplication.translate("PreferencesDialog", u"API key", None))
+        self.label_jellyfin_user.setText(QCoreApplication.translate("PreferencesDialog", u"user filter", None))
+        self.label_jellyfin_device.setText(QCoreApplication.translate("PreferencesDialog", u"device filter", None))
+        self.label_jellyfin_offset_ms.setText(QCoreApplication.translate("PreferencesDialog", u"offset (ms)", None))
+        self.jellyfin_reload.setText(QCoreApplication.translate("PreferencesDialog", u"...", None))
+        self.jellyfin_offset_ms.setToolTip(QCoreApplication.translate("PreferencesDialog", u"Positive values play the funscript ahead of the video, negative values delay it.", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_media_settings), QCoreApplication.translate("PreferencesDialog", u"Media sync", None))
         self.groupBox_5.setTitle(QCoreApplication.translate("PreferencesDialog", u"Phase", None))
         self.label_2.setText(QCoreApplication.translate("PreferencesDialog", u"max fps", None))
