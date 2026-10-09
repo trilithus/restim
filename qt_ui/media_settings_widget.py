@@ -21,6 +21,7 @@ from qt_ui.media_settings_widget_ui import Ui_MediaSettingsWidget
 
 from net.media_source.internal import Internal
 from net.media_source.mpc import MPC
+from net.media_source.rest import RestMediaSource
 from qt_ui.models.script_mapping import FunscriptTreeItem, ScriptMappingModel
 from qt_ui.widgets.table_view_with_combobox import ComboBoxDelegate, ButtonDelegate
 from qt_ui.models import funscript_kit, additional_search_paths
@@ -43,18 +44,17 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
             HereSphere(self),
             VLC(self),
             Kodi(self),
+            RestMediaSource(self),
         ]
-        self.media_sync[0].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 0))
-        self.media_sync[1].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 1))
-        self.media_sync[2].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 2))
-        self.media_sync[3].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 3))
-        self.media_sync[4].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 4))
+        for i, media_sync in enumerate(self.media_sync):
+            media_sync.connectionStatusChanged.connect(functools.partial(self.connection_status_changed, i))
 
         self.comboBox.addItem("Internal")
         self.comboBox.addItem(QIcon(":/restim/media_players/mpc-hc.png"), "MPC-HC")
         self.comboBox.addItem(QIcon(":/restim/media_players/heresphere.png"), "HereSphere")
         self.comboBox.addItem(QIcon(":/restim/media_players/vlc.svg"), "VLC")
         self.comboBox.addItem(QIcon(":/restim/media_players/kodi.png"), "Kodi")
+        self.comboBox.addItem("REST API")
         self.comboBox.currentIndexChanged.connect(self.media_index_changed)
 
         self.loaded_media_path = None
@@ -224,6 +224,26 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
 
     def current_media_sync(self):
         return self.media_sync[self.current_index]
+
+    def media_sync_names(self) -> list[str]:
+        return [self.comboBox.itemText(i) for i in range(self.comboBox.count())]
+
+    def current_media_sync_name(self) -> str:
+        return self.comboBox.itemText(self.current_index)
+
+    def set_media_sync_by_name(self, name: str) -> bool:
+        index = self.comboBox.findText(name)
+        if index == -1:
+            return False
+        self.comboBox.setCurrentIndex(index)
+        return True
+
+    def rest_media_sync(self) -> RestMediaSource | None:
+        """the REST media source, if it is the active media sync"""
+        media = self.current_media_sync()
+        if isinstance(media, RestMediaSource):
+            return media
+        return None
 
     def refresh_media_offset(self):
         offset = self.media_offset_spinbox.value()
