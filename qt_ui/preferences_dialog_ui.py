@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'preferencesdialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.3
+## Created by: Qt User Interface Compiler version 6.12.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -625,6 +625,73 @@ class Ui_PreferencesDialog(object):
 
         self.verticalLayout_6.addWidget(self.groupBox_12)
 
+        self.groupBox_jellyfin = QGroupBox(self.tab_media_settings)
+        self.groupBox_jellyfin.setObjectName(u"groupBox_jellyfin")
+        self.gridLayout_jellyfin = QGridLayout(self.groupBox_jellyfin)
+        self.gridLayout_jellyfin.setObjectName(u"gridLayout_jellyfin")
+        self.label_jellyfin_address = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_address.setObjectName(u"label_jellyfin_address")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_address, 0, 0, 1, 1)
+
+        self.jellyfin_address = QLineEdit(self.groupBox_jellyfin)
+        self.jellyfin_address.setObjectName(u"jellyfin_address")
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_address, 0, 1, 1, 1)
+
+        self.jellyfin_reload = QToolButton(self.groupBox_jellyfin)
+        self.jellyfin_reload.setObjectName(u"jellyfin_reload")
+        self.jellyfin_reload.setIcon(icon)
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_reload, 0, 2, 1, 1)
+
+        self.label_jellyfin_api_key = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_api_key.setObjectName(u"label_jellyfin_api_key")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_api_key, 1, 0, 1, 1)
+
+        self.jellyfin_api_key = QLineEdit(self.groupBox_jellyfin)
+        self.jellyfin_api_key.setObjectName(u"jellyfin_api_key")
+        self.jellyfin_api_key.setEchoMode(QLineEdit.EchoMode.Password)
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_api_key, 1, 1, 1, 1)
+
+        self.label_jellyfin_user = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_user.setObjectName(u"label_jellyfin_user")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_user, 2, 0, 1, 1)
+
+        self.jellyfin_user = QLineEdit(self.groupBox_jellyfin)
+        self.jellyfin_user.setObjectName(u"jellyfin_user")
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_user, 2, 1, 1, 1)
+
+        self.label_jellyfin_device = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_device.setObjectName(u"label_jellyfin_device")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_device, 3, 0, 1, 1)
+
+        self.jellyfin_device = QLineEdit(self.groupBox_jellyfin)
+        self.jellyfin_device.setObjectName(u"jellyfin_device")
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_device, 3, 1, 1, 1)
+
+        self.label_jellyfin_offset_ms = QLabel(self.groupBox_jellyfin)
+        self.label_jellyfin_offset_ms.setObjectName(u"label_jellyfin_offset_ms")
+
+        self.gridLayout_jellyfin.addWidget(self.label_jellyfin_offset_ms, 4, 0, 1, 1)
+
+        self.jellyfin_offset_ms = QSpinBox(self.groupBox_jellyfin)
+        self.jellyfin_offset_ms.setObjectName(u"jellyfin_offset_ms")
+        self.jellyfin_offset_ms.setMinimum(-10000)
+        self.jellyfin_offset_ms.setMaximum(10000)
+        self.jellyfin_offset_ms.setSingleStep(10)
+
+        self.gridLayout_jellyfin.addWidget(self.jellyfin_offset_ms, 4, 1, 1, 1)
+
+
+        self.verticalLayout_6.addWidget(self.groupBox_jellyfin)
+
         self.verticalSpacer_6 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_6.addItem(self.verticalSpacer_6)
@@ -919,6 +986,16 @@ class Ui_PreferencesDialog(object):
         self.groupBox_12.setTitle(QCoreApplication.translate("PreferencesDialog", u"OFS", None))
         self.label_36.setText(QCoreApplication.translate("PreferencesDialog", u"address:port", None))
         self.ofs_reload.setText(QCoreApplication.translate("PreferencesDialog", u"...", None))
+        self.groupBox_jellyfin.setTitle(QCoreApplication.translate("PreferencesDialog", u"Jellyfin", None))
+        self.label_jellyfin_address.setText(QCoreApplication.translate("PreferencesDialog", u"address:port", None))
+        self.jellyfin_reload.setText(QCoreApplication.translate("PreferencesDialog", u"...", None))
+        self.label_jellyfin_api_key.setText(QCoreApplication.translate("PreferencesDialog", u"API key", None))
+        self.label_jellyfin_user.setText(QCoreApplication.translate("PreferencesDialog", u"user filter", None))
+        self.label_jellyfin_device.setText(QCoreApplication.translate("PreferencesDialog", u"device filter", None))
+        self.label_jellyfin_offset_ms.setText(QCoreApplication.translate("PreferencesDialog", u"offset (ms)", None))
+#if QT_CONFIG(tooltip)
+        self.jellyfin_offset_ms.setToolTip(QCoreApplication.translate("PreferencesDialog", u"Positive values play the funscript ahead of the video, negative values delay it.", None))
+#endif // QT_CONFIG(tooltip)
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_media_settings), QCoreApplication.translate("PreferencesDialog", u"Media sync", None))
         self.groupBox_general.setTitle(QCoreApplication.translate("PreferencesDialog", u"General", None))
         self.prevent_system_sleep_when_active.setText(QCoreApplication.translate("PreferencesDialog", u"Prevent system sleep while active", None))
@@ -933,9 +1010,9 @@ class Ui_PreferencesDialog(object):
         self.button_patterns_enable_all.setText(QCoreApplication.translate("PreferencesDialog", u"Enable All", None))
         self.button_patterns_disable_all.setText(QCoreApplication.translate("PreferencesDialog", u"Disable All", None))
         ___qtablewidgetitem = self.patterns_table.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("PreferencesDialog", u"Pattern", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("PreferencesDialog", u"Pattern", None))
         ___qtablewidgetitem1 = self.patterns_table.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("PreferencesDialog", u"Enabled", None));
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("PreferencesDialog", u"Enabled", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_patterns), QCoreApplication.translate("PreferencesDialog", u"Patterns", None))
     # retranslateUi
 

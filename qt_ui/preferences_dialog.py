@@ -84,6 +84,9 @@ class PreferencesDialog(QDialog, Ui_PreferencesDialog):
         self.ofs_reload.clicked.connect(
             functools.partial(self.ofs_address.setText, qt_ui.settings.media_sync_ofs_address.default_value)
         )
+        self.jellyfin_reload.clicked.connect(
+            functools.partial(self.jellyfin_address.setText, qt_ui.settings.media_sync_jellyfin_address.default_value)
+        )
 
         # focstim/neostim reload serial devices
         self.focstim_refresh_serial_devices.clicked.connect(self.repopulate_serial_devices)
@@ -186,6 +189,11 @@ class PreferencesDialog(QDialog, Ui_PreferencesDialog):
         self.vlc_password.setText(qt_ui.settings.media_sync_vlc_password.get())
         self.kodi_address.setText(qt_ui.settings.media_sync_kodi_address.get())
         self.ofs_address.setText(qt_ui.settings.media_sync_ofs_address.get())
+        self.jellyfin_address.setText(qt_ui.settings.media_sync_jellyfin_address.get())
+        self.jellyfin_api_key.setText(qt_ui.settings.media_sync_jellyfin_api_key.get())
+        self.jellyfin_user.setText(qt_ui.settings.media_sync_jellyfin_user.get())
+        self.jellyfin_device.setText(qt_ui.settings.media_sync_jellyfin_device.get())
+        self.jellyfin_offset_ms.setValue(qt_ui.settings.media_sync_jellyfin_offset_ms.get())
 
         # display settings
         self.prevent_system_sleep_when_active.setChecked(qt_ui.settings.prevent_system_sleep_when_active.get())
@@ -355,6 +363,11 @@ class PreferencesDialog(QDialog, Ui_PreferencesDialog):
         qt_ui.settings.media_sync_vlc_password.set(self.vlc_password.text())
         qt_ui.settings.media_sync_kodi_address.set(self.kodi_address.text())
         qt_ui.settings.media_sync_ofs_address.set(self.ofs_address.text())
+        qt_ui.settings.media_sync_jellyfin_address.set(self.jellyfin_address.text())
+        qt_ui.settings.media_sync_jellyfin_api_key.set(self.jellyfin_api_key.text())
+        qt_ui.settings.media_sync_jellyfin_user.set(self.jellyfin_user.text())
+        qt_ui.settings.media_sync_jellyfin_device.set(self.jellyfin_device.text())
+        qt_ui.settings.media_sync_jellyfin_offset_ms.set(self.jellyfin_offset_ms.value())
 
         # display
         qt_ui.settings.prevent_system_sleep_when_active.set(self.prevent_system_sleep_when_active.isChecked())

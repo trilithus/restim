@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt
 from funscript.collect_funscripts import Resource
 from net.media_source.vlc import VLC
 from net.media_source.kodi import Kodi
+from net.media_source.jellyfin import Jellyfin
 from qt_ui.additional_search_paths_dialog import AdditionalSearchPathsDialog
 from qt_ui.device_wizard.axes import AxisEnum
 
@@ -45,6 +46,7 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
             VLC(self),
             Kodi(self),
             OFS(self),
+            Jellyfin(self),
         ]
         self.media_sync[0].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 0))
         self.media_sync[1].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 1))
@@ -52,6 +54,7 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
         self.media_sync[3].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 3))
         self.media_sync[4].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 4))
         self.media_sync[5].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 5))
+        self.media_sync[6].connectionStatusChanged.connect(functools.partial(self.connection_status_changed, 6))
 
         self.comboBox.addItem("Internal")
         self.comboBox.addItem(QIcon(":/restim/media_players/mpc-hc.png"), "MPC-HC")
@@ -59,6 +62,7 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
         self.comboBox.addItem(QIcon(":/restim/media_players/vlc.svg"), "VLC")
         self.comboBox.addItem(QIcon(":/restim/media_players/kodi.png"), "Kodi")
         self.comboBox.addItem(QIcon(":/restim/media_players/ofs.png"), "OFS")
+        self.comboBox.addItem(QIcon(":/restim/media_players/jellyfin.svg"), "Jellyfin")
         self.comboBox.currentIndexChanged.connect(self.media_index_changed)
 
         self.loaded_media_path = None
@@ -198,6 +202,9 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
             basename = os.path.basename(new_path)
             extra_paths = settings.additional_search_paths.get()
             search_paths = [dirname] + extra_paths
+            connector = self.media_sync[self.current_index]
+            if hasattr(connector, 'funscript_search_paths'):
+                search_paths = connector.funscript_search_paths(new_path)
 
             self.model.beginResetModel()
             dirty |= self.model.clear_auto_detected_funscripts()
