@@ -45,6 +45,7 @@ class FunscriptTreeItem(TreeItem):
 
         # self.resource = resource
         self.file_name = resource.name()
+        self.path = str(resource.path)
         self.funscript_type = resource.funscript_type()
         self.axis = qt_ui.device_wizard.axes.AxisEnum.NONE
         self.is_removable = False
@@ -226,6 +227,9 @@ class ScriptMappingModel(QAbstractItemModel):
 
     def funscript_conifg(self) -> list[FunscriptTreeItem]:
         return self._funscripts_manual.children + self._funscripts_auto.children
+
+    def is_manual(self, item: FunscriptTreeItem) -> bool:
+        return item in self._funscripts_manual.children
 
     def get_config_for_axis(self, axis: AxisEnum) -> FunscriptTreeItem | None:
         for funscript in self._funscripts_manual.children + self._funscripts_auto.children:

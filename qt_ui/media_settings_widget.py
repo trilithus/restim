@@ -109,16 +109,24 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
         dlg.setNameFilters(["*.funscript"])
 
         if dlg.exec():
-            self.model.beginResetModel()
-            filenames = dlg.selectedFiles()
-            kit = funscript_kit.FunscriptKitModel.load_from_settings()
-            for filename in filenames:
-                item = FunscriptTreeItem(Resource(pathlib.Path(filename)))
-                self.model.auto_link_funscript(kit, item)
-                self.model.add_funscript_resource_manual(item)
-            self.model.endResetModel()
-            self.treeView.expandAll()
-            self.funscriptMappingChanged.emit()
+            self.add_funscripts(dlg.selectedFiles())
+
+    def add_funscripts(self, filenames: list[str]) -> list[FunscriptTreeItem]:
+        """
+        Load funscripts from disk as manual funscripts, and auto-link them to an axis.
+        """
+        items = []
+        self.model.beginResetModel()
+        kit = funscript_kit.FunscriptKitModel.load_from_settings()
+        for filename in filenames:
+            item = FunscriptTreeItem(Resource(pathlib.Path(filename)))
+            self.model.auto_link_funscript(kit, item)
+            self.model.add_funscript_resource_manual(item)
+            items.append(item)
+        self.model.endResetModel()
+        self.treeView.expandAll()
+        self.funscriptMappingChanged.emit()
+        return items
 
     def open_search_paths_dialog(self):
         self.dialogOpened.emit()  # trigger stop audio

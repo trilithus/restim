@@ -30,6 +30,11 @@ class RestApi(QObject):
         self.http.route_json('/v1/media/load', {'POST': self.load_media})
         self.http.route_json('/v1/media/unload', {'POST': self.unload_media})
 
+        self.http.route_json('/v1/funscripts', {
+            'GET': self.get_funscripts,
+            'POST': self.add_funscripts,
+        })
+
     # media
 
     def require_rest_media_sync(self):
@@ -80,3 +85,38 @@ class RestApi(QObject):
     def unload_media(self, request: QHttpServerRequest):
         self.require_rest_media_sync().unload()
         return self.media_status()
+
+    # funscripts
+
+    def funscript_list(self) -> dict:
+        model = self.window.page_media.model
+        return {'funscripts': [
+            {
+                'id': i,
+                'file': item.file_name,
+                'path': item.path,
+                'source': 'manual' if model.is_manual(item) else 'auto',
+                'axis': item.axis.name,
+                'active': item.first_of_its_kind,
+                'broken': item.has_broken_script(),
+            }
+            for i, item in enumerate(model.funscript_conifg())
+        ]}
+
+    def get_funscripts(self, request: QHttpServerRequest):
+        return self.funscript_list()
+
+    def add_funscripts(self, request: QHttpServerRequest):
+        """
+        Load funscripts from disk and auto-assign them to an axis.
+        body: {"paths": ["a.alpha.funscript", ...]} or {"path": "a.alpha.funscript"}
+        """
+        body = json_body(request)
+        paths = body.get('paths', [body['path']] if 'path' in body else None)
+        if not isinstance(paths, list) or not paths or not all(isinstance(p, str) for p in paths):
+            raise ApiError(400, '"paths" must be a non-empty list of file paths')
+        for path in paths:
+            if not os.path.isfile(path):
+                raise ApiError(404, f'file not found: {path}')
+        self.window.page_media.add_funscripts([os.path.abspath(p) for p in paths])
+        return self.funscript_list()
