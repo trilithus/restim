@@ -55,8 +55,9 @@ class FunscriptTreeItem(TreeItem):
         # but has the advantage of not requiring any file IO when audio starts.
         try:
             self.script = Funscript.from_file(resource.path)
-        except json.decoder.JSONDecodeError as e:
-            logger.error(f'Unable to parse funscript, broken? {resource.path}')
+        except (ValueError, KeyError, TypeError) as e:
+            # ValueError includes JSONDecodeError and UnicodeDecodeError (not a text file)
+            logger.error(f'Unable to parse funscript, broken? {resource.path}: {type(e).__name__}: {e}')
             self.script = None
 
     def has_broken_script(self) -> bool:
