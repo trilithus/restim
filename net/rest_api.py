@@ -85,6 +85,7 @@ class RestApi(QObject):
         self.http.add_json_action('stop', self.stop)
         self.http.add_json_action('play', self.play)
         self.http.add_json_action('pause', self.pause)
+        self.http.route_json('/v1/seek', {'POST': self.seek})
 
         self.settings = self.create_settings()
         self.http.route_json('/v1/settings', {'GET': self.get_settings, 'PUT': self.set_settings})
@@ -162,6 +163,17 @@ class RestApi(QObject):
         but is silent while paused.
         """
         self.require_rest_media_sync().pause()
+        return self.get_status(request)
+
+    def seek(self, request: QHttpServerRequest):
+        """seek the REST media source. body: {"position": 12.5} (seconds)"""
+        position = json_body(request).get('position')
+        if isinstance(position, bool) or not isinstance(position, (int, float)) or position < 0:
+            raise ApiError(400, '"position" must be a non-negative number of seconds')
+        rest = self.require_rest_media_sync()
+        if not rest.is_media_loaded():
+            raise ApiError(409, 'no media loaded, use /v1/media/load')
+        rest.seek(position)
         return self.get_status(request)
 
     # media
