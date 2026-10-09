@@ -22,6 +22,7 @@ from device.audio.audio_stim_device import AudioStimDevice
 import net.websocketserver
 import net.tcpudpserver
 import net.http_server
+import net.rest_api
 import qt_ui.funscript_conversion_dialog
 import qt_ui.simfile_conversion_dialog
 import qt_ui.focstim_flash_dialog
@@ -201,6 +202,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.http_server.route('/v1/status', self.api_status)
         self.http_server.add_action('start', self.api_start)
         self.http_server.add_action('stop', self.api_stop)
+        self.rest_api = net.rest_api.RestApi(self, self.http_server)
 
         self.tcpudp_server = net.tcpudpserver.TcpUdpServer(self)
         self.tcpudp_server.new_tcode_command.connect(self.tcode_command_router.route_command)
