@@ -6,6 +6,7 @@ on:
       - 'v*'            # e.g. v1.2.3 → publishes to GitHub Release
     branches:
       - master          # also build on main pushes (artifacts only)
+      - feature/jellyfin_media_source
   workflow_dispatch:    # and on manual trigger from the Actions tab
 
 jobs:
