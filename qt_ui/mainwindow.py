@@ -44,6 +44,7 @@ import sounddevice as sd
 
 from qt_ui.device_wizard.wizard import DeviceSelectionWizard
 from qt_ui.device_wizard.enums import DeviceConfiguration, DeviceType, WaveformType
+from qt_ui.device_wizard.axes import AxisEnum
 
 from qt_ui.tcode_command_router import TCodeCommandRouter
 
@@ -356,6 +357,9 @@ class Window(QMainWindow, Ui_MainWindow):
         else:
             self.signal_stop(PlayState.STOPPED)
 
+        if self.page_media.auto_select_focstim_mode_enabled():
+            self.auto_select_focstim_mode()
+
         device = DeviceConfiguration.from_settings()
         algorithm_factory = AlgorithmFactory(
             self,
@@ -423,6 +427,38 @@ class Window(QMainWindow, Ui_MainWindow):
                 self.playstate == PlayState.WAITING_ON_LOAD)):
             logger.info("autostart audio")
             self.signal_start()
+
+    def auto_select_focstim_mode(self):
+        """
+        Switch FOC-Stim between three-phase and four-phase to match the loaded funscripts.
+        Output is already stopped (or waiting on autostart) at this point, so the
+        next start picks up the new mode.
+        """
+        config = DeviceConfiguration.from_settings()
+        if config.device_type not in (DeviceType.FOCSTIM_THREE_PHASE, DeviceType.FOCSTIM_FOUR_PHASE):
+            return
+        if self.page_media.is_internal():
+            return
+
+        mapping = self.page_media.model
+        has_threephase = any(mapping.get_config_for_axis(axis) for axis in
+                             (AxisEnum.POSITION_ALPHA, AxisEnum.POSITION_BETA))
+        has_fourphase = any(mapping.get_config_for_axis(axis) for axis in
+                            (AxisEnum.INTENSITY_A, AxisEnum.INTENSITY_B, AxisEnum.INTENSITY_C, AxisEnum.INTENSITY_D))
+
+        if has_fourphase and not has_threephase:
+            new_type = DeviceType.FOCSTIM_FOUR_PHASE
+        elif has_threephase and not has_fourphase:
+            new_type = DeviceType.FOCSTIM_THREE_PHASE
+        else:
+            return
+
+        if new_type != config.device_type:
+            logger.info(f'funscripts require {new_type.name}, switching device type from {config.device_type.name}')
+            config.device_type = new_type
+            config.save()
+            self.refresh_device_type()
+            self.refresh_pattern_combobox()
 
     def refresh_device_type(self):
         def set_visible(widget, state):

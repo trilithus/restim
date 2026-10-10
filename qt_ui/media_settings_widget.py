@@ -91,6 +91,8 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
         self.stop_audio_automatically_checkbox.setChecked(settings.media_sync_stop_audio_automatically.get())
         self.follow_playback_checkbox.setChecked(settings.media_sync_follow_playback.get())
         self.follow_playback_checkbox.toggled.connect(settings.media_sync_follow_playback.set)
+        self.auto_select_focstim_mode_checkbox.setChecked(settings.media_sync_auto_select_focstim_mode.get())
+        self.auto_select_focstim_mode_checkbox.toggled.connect(settings.media_sync_auto_select_focstim_mode.set)
 
         header = self.treeView.header()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
@@ -221,6 +223,9 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
 
     def follow_playback_enabled(self):
         return self.follow_playback_checkbox.isChecked()
+
+    def auto_select_focstim_mode_enabled(self):
+        return self.auto_select_focstim_mode_checkbox.isChecked()
 
     def is_connected(self):
         media = self.media_sync[self.current_index]
