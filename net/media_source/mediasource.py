@@ -128,7 +128,7 @@ class MediaSource(QObject, MediaSourceInterface, metaclass=A):
                             report.claimed_media_position - self.last_state.cursor)
                 # logger.debug('still playing, drift=%f', drift)
 
-                if abs(drift) > 2.0:
+                if self.needs_resync(drift):
                     new_state.media_play_timestamp = report.timestamp
                     new_state.connectionState = MediaConnectionState.CONNECTED_AND_PLAYING
                     new_state.cursor = report.claimed_media_position
@@ -139,6 +139,13 @@ class MediaSource(QObject, MediaSourceInterface, metaclass=A):
         if (prev_state.connectionState != new_state.connectionState) or \
                 (prev_state.filePath != new_state.filePath):
             self.connectionStatusChanged.emit()
+
+    def needs_resync(self, drift: float) -> bool:
+        """
+        Called for every report while playing, with the difference between the
+        locally projected and the reported media position (seconds).
+        """
+        return abs(drift) > 2.0
 
     def map_timestamp(self, timestamp):
         if self.is_playing():
