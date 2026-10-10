@@ -1,11 +1,10 @@
 import json
 import logging
 import os
-import re
+import random
 import statistics
 import sys
 import time
-from datetime import datetime, timezone
 
 from PySide6 import QtCore
 from PySide6.QtCore import QUrl, QUrlQuery
@@ -18,25 +17,13 @@ logger = logging.getLogger('restim.media.jellyfin')
 
 TICKS_PER_SECOND = 10_000_000
 
-# Jellyfin only knows the position from the client's last progress report, which can be several seconds old.
+# PositionTicks lags behind the real playback position (it is only updated by the client's progress reports).
 # Re-sync when the median drift of the last few fresh reports exceeds this.
 RESYNC_DRIFT_THRESHOLD = 0.05  # seconds
 RESYNC_DRIFT_SAMPLES = 3
-# allow the clock offset estimate to slowly recover if the server or local clock is adjusted
-CLOCK_OFFSET_DECAY = 0.001  # seconds per fresh report
-
-
-def parse_jellyfin_date(value: str):
-    """
-    Parse a Jellyfin timestamp such as '2026-10-10T12:34:56.1234567Z' to unix time.
-    Jellyfin uses 7 fractional digits, which datetime does not accept.
-    """
-    m = re.match(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})?$', value or '')
-    if not m:
-        return None
-    base, fraction, tz = m.groups()
-    dt = datetime.fromisoformat(base + (tz if tz and tz != 'Z' else '+00:00'))
-    return dt.timestamp() + (float('0.' + fraction) if fraction else 0.0)
+# widen the playback start bounds a little on every fresh report, so the estimate can recover
+# if playback runs slightly slower or faster than real time
+PLAY_START_DECAY = 0.001  # seconds
 
 
 def binary_dir() -> str:
@@ -62,9 +49,11 @@ class Jellyfin(MediaSource):
         self.path_cache = {}
         self.pending_path_lookups = set()
 
-        # estimate of (local clock - server clock), see _extrapolate_position()
-        self.clock_offset = None
-        self.last_check_in = None
+        # bounds on the local time at which media position 0 would have played, see _extrapolate_position()
+        self.play_start_min = None
+        self.play_start_max = None
+        self.last_position = None
+        self.last_timestamp = None
         self.fresh_report = False
         self.drift_samples = []
 
@@ -93,6 +82,9 @@ class Jellyfin(MediaSource):
             return
         if self.pending_reply is not None:
             return  # previous request still in flight
+        # vary the poll interval, so polls do not keep hitting the same phase of the position updates,
+        # which would prevent _extrapolate_position() from narrowing down the play start
+        self.timer.setInterval(random.randint(400, 600))
         self.jellyfin_offset = settings.media_sync_jellyfin_offset_ms.get() / 1000.0
         request = self._make_request('/Sessions', {'activeWithinSeconds': '60'})
         request_time = time.time()
@@ -136,7 +128,9 @@ class Jellyfin(MediaSource):
         position = play_state.get('PositionTicks', 0) / TICKS_PER_SECOND
         paused = play_state.get('IsPaused', False)
         if not paused:
-            position = self._extrapolate_position(position, session, timestamp)
+            position = self._extrapolate_position(position, timestamp)
+        else:
+            self._reset_play_start()
 
         self.set_state(
             MediaStatusReport(
@@ -149,30 +143,56 @@ class Jellyfin(MediaSource):
             )
         )
 
-    def _extrapolate_position(self, position: float, session, timestamp: float) -> float:
+    def _reset_play_start(self):
+        self.play_start_min = None
+        self.play_start_max = None
+        self.last_position = None
+        self.last_timestamp = None
+
+    def _extrapolate_position(self, position: float, timestamp: float) -> float:
         """
-        PositionTicks is the position at the client's last progress report (LastPlaybackCheckIn, server clock).
-        Add the time elapsed since then. The server clock is not synchronized to ours, so estimate the offset:
-        timestamp - check_in = clock_offset + report_age, with report_age >= 0. The minimum over fresh reports
-        converges to the clock offset plus the minimal report age (at most the poll interval).
+        PositionTicks lags behind the real position, and only changes when the client reports progress.
+        Bound the local time at which position 0 played (play start):
+        - the position is never ahead of the real position, so play start <= timestamp - position
+        - a position that changed since the previous poll became valid after that poll,
+          so play start >= previous timestamp - position
+        This does not depend on the server clock or on how often the client reports its progress.
         """
-        check_in = parse_jellyfin_date(session.get('LastPlaybackCheckIn'))
-        if check_in is None:
-            self.fresh_report = True
-            return position
+        seek_backwards = self.last_position is not None and position < self.last_position
+        fresh = position != self.last_position
+        previous_timestamp = self.last_timestamp if self.last_position is not None else None
+        self.fresh_report = fresh
+        self.last_position = position
+        self.last_timestamp = timestamp
 
-        self.fresh_report = check_in != self.last_check_in
-        self.last_check_in = check_in
+        upper = timestamp - position
+        lower = previous_timestamp - position if previous_timestamp is not None else None
 
-        sample = timestamp - check_in
-        if self.clock_offset is None:
-            self.clock_offset = sample
-        elif self.fresh_report:
-            self.clock_offset = min(self.clock_offset + CLOCK_OFFSET_DECAY, sample)
+        if self.play_start_max is None or seek_backwards or \
+                (self.play_start_min is not None and upper < self.play_start_min):
+            # (re)start, seek backwards or seek forward
+            self.play_start_max = upper
+            self.play_start_min = lower if not seek_backwards else None
+        elif fresh:
+            self.play_start_max = min(self.play_start_max + PLAY_START_DECAY, upper)
+            if lower is not None:
+                if self.play_start_min is None:
+                    self.play_start_min = lower
+                else:
+                    self.play_start_min = max(self.play_start_min - PLAY_START_DECAY, lower)
+            if self.play_start_min is not None and self.play_start_min > self.play_start_max:
+                # inconsistent, e.g. network delay; trust the upper bound
+                self.play_start_min = self.play_start_max
 
-        age = max(0.0, timestamp - check_in - self.clock_offset)
-        logger.debug('position %.3f, report age %.3f, clock offset %.3f', position, age, self.clock_offset)
-        return position + age
+        if self.play_start_min is None:
+            play_start = self.play_start_max
+        else:
+            play_start = (self.play_start_min + self.play_start_max) / 2
+        extrapolated = timestamp - play_start
+        logger.debug('position %.3f, extrapolated %.3f, uncertainty %.3f',
+                     position, extrapolated,
+                     self.play_start_max - self.play_start_min if self.play_start_min is not None else float('inf'))
+        return extrapolated
 
     def needs_resync(self, drift: float) -> bool:
         if abs(drift) > 2.0:
@@ -284,8 +304,7 @@ class Jellyfin(MediaSource):
     def enable(self):
         self._enabled = True
         self.path_cache.clear()
-        self.clock_offset = None
-        self.last_check_in = None
+        self._reset_play_start()
         self.drift_samples.clear()
         self.jellyfin_offset = settings.media_sync_jellyfin_offset_ms.get() / 1000.0
         self.timer.start()
