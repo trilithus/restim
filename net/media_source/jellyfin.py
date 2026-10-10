@@ -54,6 +54,7 @@ class Jellyfin(MediaSource):
         self.play_start_max = None
         self.last_position = None
         self.last_timestamp = None
+        self.last_extrapolation = (0.0, 0.0, float('inf'))
         self.fresh_report = False
         self.drift_samples = []
 
@@ -189,9 +190,10 @@ class Jellyfin(MediaSource):
         else:
             play_start = (self.play_start_min + self.play_start_max) / 2
         extrapolated = timestamp - play_start
-        logger.debug('position %.3f, extrapolated %.3f, uncertainty %.3f',
-                     position, extrapolated,
-                     self.play_start_max - self.play_start_min if self.play_start_min is not None else float('inf'))
+        # only logged on re-sync, see needs_resync()
+        self.last_extrapolation = (position, extrapolated,
+                                   self.play_start_max - self.play_start_min
+                                   if self.play_start_min is not None else float('inf'))
         return extrapolated
 
     def needs_resync(self, drift: float) -> bool:
@@ -205,7 +207,8 @@ class Jellyfin(MediaSource):
         if len(self.drift_samples) == RESYNC_DRIFT_SAMPLES:
             median = statistics.median(self.drift_samples)
             if abs(median) > RESYNC_DRIFT_THRESHOLD:
-                logger.info('median drift %.3f s, re-sync', median)
+                logger.info('median drift %.3f s (position %.3f, extrapolated %.3f, uncertainty %.3f)',
+                            median, *self.last_extrapolation)
                 self.drift_samples.clear()
                 return True
         return False
