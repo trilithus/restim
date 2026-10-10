@@ -149,6 +149,13 @@ Increase offset to delay signal</string>
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="follow_playback_checkbox">
+     <property name="text">
+      <string>Start/stop with media playback</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="TreeViewWithComboBox" name="treeView"/>
    </item>
    <item>
