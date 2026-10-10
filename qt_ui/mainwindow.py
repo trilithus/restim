@@ -223,6 +223,7 @@ class Window(QMainWindow, Ui_MainWindow):
         # stop audio when user modifies settings in media tab
         self.page_media.dialogOpened.connect(self.signal_stop)
         self.page_media.funscriptMappingChanged.connect(self.funscript_mapping_changed)
+        self.media_was_playing = False
         self.page_media.connectionStatusChanged.connect(self.media_connection_status_changed)
         self.page_media.bake_audio_button.clicked.connect(self.open_write_audio_dialog)
 
@@ -329,6 +330,19 @@ class Window(QMainWindow, Ui_MainWindow):
             self.iconMedia.set_connected()
         else:
             self.iconMedia.set_not_connected()
+
+        # Only react to play/pause transitions, so repeated status updates
+        # (e.g. while seeking) don't toggle the output.
+        is_playing = status.is_playing()
+        if is_playing != self.media_was_playing:
+            self.media_was_playing = is_playing
+            if self.page_media.follow_playback_enabled() and not self.page_media.is_internal():
+                if is_playing and self.playstate == PlayState.STOPPED:
+                    logger.info("media playback started, starting output")
+                    self.signal_start()
+                elif not is_playing and self.playstate != PlayState.STOPPED:
+                    logger.info("media playback stopped, stopping output")
+                    self.signal_stop(PlayState.STOPPED)
 
     def funscript_mapping_changed(self):
         """

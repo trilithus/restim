@@ -124,6 +124,7 @@ media_sync_jellyfin_user = Setting('media_sync/jellyfin_user', '', str)
 media_sync_jellyfin_device = Setting('media_sync/jellyfin_device', '', str)
 media_sync_jellyfin_offset_ms = Setting('media_sync/jellyfin_offset_ms', 0, int)
 media_sync_stop_audio_automatically = Setting('media_sync/stop_audio_automatically', True, bool)
+media_sync_follow_playback = Setting('media_sync/follow_playback', False, bool)
 media_sync_time_offset_ms = Setting('media_sync/time_offset_ms', 0, int)
 
 audio_api = Setting("audio/api-name", "", str)

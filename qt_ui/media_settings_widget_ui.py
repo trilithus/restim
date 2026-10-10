@@ -106,6 +106,11 @@ class Ui_MediaSettingsWidget(object):
 
         self.verticalLayout.addWidget(self.stop_audio_automatically_checkbox)
 
+        self.follow_playback_checkbox = QCheckBox(MediaSettingsWidget)
+        self.follow_playback_checkbox.setObjectName(u"follow_playback_checkbox")
+
+        self.verticalLayout.addWidget(self.follow_playback_checkbox)
+
         self.treeView = TreeViewWithComboBox(MediaSettingsWidget)
         self.treeView.setObjectName(u"treeView")
 
@@ -160,6 +165,7 @@ class Ui_MediaSettingsWidget(object):
 #endif // QT_CONFIG(tooltip)
         self.label_3.setText(QCoreApplication.translate("MediaSettingsWidget", u"offset [s] (?)", None))
         self.stop_audio_automatically_checkbox.setText(QCoreApplication.translate("MediaSettingsWidget", u"Stop audio when file changes", None))
+        self.follow_playback_checkbox.setText(QCoreApplication.translate("MediaSettingsWidget", u"Start/stop with media playback", None))
         self.add_funscript_button.setText(QCoreApplication.translate("MediaSettingsWidget", u"Add funscript", None))
         self.bake_audio_button.setText(QCoreApplication.translate("MediaSettingsWidget", u"Bake audio", None))
         self.additional_search_paths_button.setText(QCoreApplication.translate("MediaSettingsWidget", u"Search paths", None))

@@ -89,6 +89,8 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
 
         self.comboBox.setCurrentIndex(self.comboBox.findText(settings.media_sync_default_source.get()))
         self.stop_audio_automatically_checkbox.setChecked(settings.media_sync_stop_audio_automatically.get())
+        self.follow_playback_checkbox.setChecked(settings.media_sync_follow_playback.get())
+        self.follow_playback_checkbox.toggled.connect(settings.media_sync_follow_playback.set)
 
         header = self.treeView.header()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
@@ -216,6 +218,9 @@ class MediaSettingsWidget(QtWidgets.QWidget, Ui_MediaSettingsWidget, metaclass=_
 
     def autostart_enabled(self):
         return not self.stop_audio_automatically_checkbox.isChecked()
+
+    def follow_playback_enabled(self):
+        return self.follow_playback_checkbox.isChecked()
 
     def is_connected(self):
         media = self.media_sync[self.current_index]
