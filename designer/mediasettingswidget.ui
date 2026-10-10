@@ -156,6 +156,16 @@ Increase offset to delay signal</string>
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="auto_select_focstim_mode_checkbox">
+     <property name="toolTip">
+      <string>Switch FOC-Stim between three-phase and four-phase depending on the loaded funscripts</string>
+     </property>
+     <property name="text">
+      <string>Auto-select FOC-Stim phase mode from funscripts</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="TreeViewWithComboBox" name="treeView"/>
    </item>
    <item>

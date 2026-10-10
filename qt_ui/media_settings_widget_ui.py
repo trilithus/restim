@@ -111,6 +111,11 @@ class Ui_MediaSettingsWidget(object):
 
         self.verticalLayout.addWidget(self.follow_playback_checkbox)
 
+        self.auto_select_focstim_mode_checkbox = QCheckBox(MediaSettingsWidget)
+        self.auto_select_focstim_mode_checkbox.setObjectName(u"auto_select_focstim_mode_checkbox")
+
+        self.verticalLayout.addWidget(self.auto_select_focstim_mode_checkbox)
+
         self.treeView = TreeViewWithComboBox(MediaSettingsWidget)
         self.treeView.setObjectName(u"treeView")
 
@@ -166,6 +171,10 @@ class Ui_MediaSettingsWidget(object):
         self.label_3.setText(QCoreApplication.translate("MediaSettingsWidget", u"offset [s] (?)", None))
         self.stop_audio_automatically_checkbox.setText(QCoreApplication.translate("MediaSettingsWidget", u"Stop audio when file changes", None))
         self.follow_playback_checkbox.setText(QCoreApplication.translate("MediaSettingsWidget", u"Start/stop with media playback", None))
+#if QT_CONFIG(tooltip)
+        self.auto_select_focstim_mode_checkbox.setToolTip(QCoreApplication.translate("MediaSettingsWidget", u"Switch FOC-Stim between three-phase and four-phase depending on the loaded funscripts", None))
+#endif // QT_CONFIG(tooltip)
+        self.auto_select_focstim_mode_checkbox.setText(QCoreApplication.translate("MediaSettingsWidget", u"Auto-select FOC-Stim phase mode from funscripts", None))
         self.add_funscript_button.setText(QCoreApplication.translate("MediaSettingsWidget", u"Add funscript", None))
         self.bake_audio_button.setText(QCoreApplication.translate("MediaSettingsWidget", u"Bake audio", None))
         self.additional_search_paths_button.setText(QCoreApplication.translate("MediaSettingsWidget", u"Search paths", None))
