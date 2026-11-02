@@ -90,7 +90,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.last_device_volume = None
 
         self.frame = QWidget()
-        frame_layout = QVBoxLayout(self.toolBar)
+        frame_layout = QVBoxLayout()
         frame_layout.addWidget(spacer)
         frame_layout.addWidget(self.device_volume_display)
         frame_layout.addWidget(self.battery_bar)
