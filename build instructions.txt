@@ -31,7 +31,7 @@
 ./venv/Scripts/pyside6-uic.exe  -o ./qt_ui/device_wizard/neostim_waveform_select_ui.py ./designer/device_wizard/neostim_waveform_select.ui
 ./venv/Scripts/pyside6-uic.exe  -o ./qt_ui/device_wizard/focstim_waveform_select_ui.py ./designer/device_wizard/focstim_waveform_select.ui
 
-./venv/Scripts/pyside6-rcc.exe ./resources/restim.qrc -o restim_rc.py
+./venv/Scripts/pyside6-rcc.exe --no-compress ./resources/restim.qrc -o restim_rc.py
 
 # generate proto files
 
