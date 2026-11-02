@@ -1,1 +1,1 @@
-VERSION = "v1.67"
+VERSION = "v1.67-jellyfin"
